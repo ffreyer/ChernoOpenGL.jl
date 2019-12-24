@@ -5,6 +5,54 @@
 using GLFW, ModernGL
 
 
+function compile_shader(gl_type, source::String)
+    id = ModernGL.glCreateShader(gl_type)
+    c_str = Vector{UInt8}(source)
+    shader_code_ptrs = Ptr{UInt8}[pointer(c_str)]
+    len = Ref{GLint}(length(c_str))
+    ModernGL.glShaderSource(id, 1, shader_code_ptrs, len)
+    ModernGL.glCompileShader(id)
+
+    # Error handling
+    result = Ref{Int32}() #Int32[]
+    ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
+    @info result
+    if result[] == GL_FALSE
+        L = Ref{Int32}()
+        ModernGL.glGetShaderiv(id, ModernGL.GL_INFO_LOG_LENGTH, L)
+        msg = Vector{UInt8}(undef, L[])
+        ModernGL.glGetShaderInfoLog(id, L[], C_NULL, msg)
+        ModernGL.glDeleteShader(id)
+
+        throw(ErrorException(
+            "Failed to compile " *
+            (gl_type == ModernGL.GL_VERTEX_SHADER ? "vertex" : "fragment") *
+            " shader!\n\n" * String(msg)
+        ))
+    end
+
+    return id
+end
+
+
+function create_shader(vertex_shader, fragment_shader)
+    program = ModernGL.glCreateProgram()
+    vs = compile_shader(ModernGL.GL_VERTEX_SHADER, vertex_shader)
+    fs = compile_shader(ModernGL.GL_FRAGMENT_SHADER, fragment_shader)
+
+    glAttachShader(program, vs)
+    glAttachShader(program, fs)
+    glLinkProgram(program)
+    glValidateProgram(program)
+
+    # Clear temporary stuff
+    glDeleteShader(vs)
+    glDeleteShader(fs)
+
+    return program
+end
+
+
 function main()
     # Create a window and its OpenGL context
     window = GLFW.CreateWindow(640, 480, "GLFW.jl")
@@ -44,8 +92,33 @@ function main()
         C_NULL                  # offset of vertex components
     )
 
-    # deselect buffer
-    ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, 0)
+    vertex_shader = """
+    #version 330 core
+
+    // OpenGL will convert this to vec4
+    // location should match index from VertexAttribPointer
+    layout(location = 0) in vec4 position;
+
+    void main()
+    {
+        gl_Position = position;
+    }
+    """
+
+    fragment_shader = """
+    #version 330 core
+
+    layout(location = 0) out vec4 color;
+
+    void main()
+    {
+        // 0 black
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+    """
+
+    shader = create_shader(vertex_shader, fragment_shader)
+    ModernGL.glUseProgram(shader)
 
     # Loop until the user closes the window
     while !GLFW.WindowShouldClose(window)
@@ -60,6 +133,10 @@ function main()
     	# Poll for and process events
     	GLFW.PollEvents()
     end
+
+    # Cleanup shader
+    ModernGL.glDeleteProgram(shader)
+
     # GLFW.Terminate() # requires re-initialization when re-running
     GLFW.DestroyWindow(window)
 end
