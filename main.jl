@@ -5,6 +5,27 @@
 using GLFW, ModernGL
 
 
+function parse_shader(filepath)
+    shaders = Dict{Symbol, String}()
+    open(filepath, "r") do f
+        write_to = :none
+        for line in eachline(f)
+            if startswith(line, "#shader")
+                write_to = Symbol(line[9:end])
+                push!(shaders, write_to => "")
+                continue
+            end
+            if (write_to == :none) && !isempty(line)
+                @warn "Ignored line\n\t>> $line"
+            else
+                shaders[write_to] = shaders[write_to] * "\n" * line
+            end
+        end
+    end
+    shaders
+end
+
+
 function compile_shader(gl_type, source::String)
     id = ModernGL.glCreateShader(gl_type)
     c_str = Vector{UInt8}(source)
@@ -16,7 +37,6 @@ function compile_shader(gl_type, source::String)
     # Error handling
     result = Ref{Int32}() #Int32[]
     ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
-    @info result
     if result[] == GL_FALSE
         L = Ref{Int32}()
         ModernGL.glGetShaderiv(id, ModernGL.GL_INFO_LOG_LENGTH, L)
@@ -92,32 +112,9 @@ function main()
         C_NULL                  # offset of vertex components
     )
 
-    vertex_shader = """
-    #version 330 core
 
-    // OpenGL will convert this to vec4
-    // location should match index from VertexAttribPointer
-    layout(location = 0) in vec4 position;
-
-    void main()
-    {
-        gl_Position = position;
-    }
-    """
-
-    fragment_shader = """
-    #version 330 core
-
-    layout(location = 0) out vec4 color;
-
-    void main()
-    {
-        // 0 black
-        color = vec4(1.0, 0.0, 0.0, 1.0);
-    }
-    """
-
-    shader = create_shader(vertex_shader, fragment_shader)
+    shaders = parse_shader((@__DIR__) * "/resources/shaders/basic.shader")
+    shader = create_shader(shaders[:vertex], shaders[:fragment])
     ModernGL.glUseProgram(shader)
 
     # Loop until the user closes the window
