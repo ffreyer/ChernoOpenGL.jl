@@ -84,11 +84,19 @@ function main()
     #              ^- these things are called attributes
     positions = Float32[
         -0.5, -0.5,
-        0.0, 0.5,
-        0.5, -0.5
+         0.5, -0.5,
+         0.5,  0.5,
+        -0.5,  0.5
     ]
 
-    # Generate GPU Buffer
+    # Hey, that's a GeometryTypes Face
+    # MUST be unsigned, can be Int8, 16, 32 (64?)
+    indices = UInt32[
+        0, 1, 2,
+        2, 3, 0
+    ]
+
+    # Generate Vertex Buffer
     vbo = Ref{ModernGL.GLuint}()
     ModernGL.glGenBuffers(1, vbo)
     # Select the buffer, mark as array buffer
@@ -113,6 +121,20 @@ function main()
     )
 
 
+    # Generate Index Buffer
+    ibo = Ref{ModernGL.GLuint}()
+    ModernGL.glGenBuffers(1, ibo)
+    # Select the buffer, mark as array buffer
+    ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
+    # Add data
+    ModernGL.glBufferData(
+        ModernGL.GL_ELEMENT_ARRAY_BUFFER,
+        sizeof(indices),
+        indices,
+        ModernGL.GL_STATIC_DRAW
+    )
+
+
     shaders = parse_shader((@__DIR__) * "/resources/shaders/basic.shader")
     shader = create_shader(shaders[:vertex], shaders[:fragment])
     ModernGL.glUseProgram(shader)
@@ -122,7 +144,12 @@ function main()
         ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
 
     	# Render here
-        ModernGL.glDrawArrays(ModernGL.GL_TRIANGLES, 0, 3)
+        ModernGL.glDrawElements(
+            ModernGL.GL_TRIANGLES,
+            length(indices),
+            ModernGL.GL_UNSIGNED_INT,
+            C_NULL # indexbuffer currently active
+        )
 
     	# Swap front and back buffers
     	GLFW.SwapBuffers(window)
