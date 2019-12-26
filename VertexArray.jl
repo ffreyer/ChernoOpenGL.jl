@@ -6,17 +6,17 @@ function VertexArray()
     m_renderer_id = Ref{UInt32}()
     @GL_call ModernGL.glGenVertexArrays(1, m_renderer_id)
     va = VertexArray(m_renderer_id)
-    finalizer(free!, va)
+    finalizer(free, va)
     va
 end
 
-free!(va::VertexArray) = @GL_call glDeleteVertexArrays(1, va.m_renderer_id)
-bind!(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(va.m_renderer_id[])
-unbind!(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(0)
+free(va::VertexArray) = @GL_call glDeleteVertexArrays(1, va.m_renderer_id)
+bind(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(va.m_renderer_id[])
+unbind(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(0)
 
-function add_buffer!(va::VertexArray, vbo::VertexBuffer, layout::VertexBufferLayout)
-    bind!(va)
-    bind!(vbo)
+function add_buffer(va::VertexArray, vbo::VertexBuffer, layout::VertexBufferLayout)
+    bind(va)
+    bind(vbo)
     offset = 0
     for (i, element) in enumerate(elements(layout))
         # Julia starts at 1, remember?

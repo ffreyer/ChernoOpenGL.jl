@@ -15,19 +15,19 @@ function VertexBuffer(data, bytesize::UInt32)
     @GL_call glBindBuffer(GL_ARRAY_BUFFER, m_renderer_id[])
     @GL_call glBufferData(GL_ARRAY_BUFFER, bytesize, data, GL_STATIC_DRAW)
     vbo = VertexBuffer(m_renderer_id)
-    finalizer(free!, vbo)
+    finalizer(free, vbo)
     vbo
 end
 
-free!(vbo::VertexBuffer) = @GL_call glDeleteBuffers(1, vbo.m_renderer_id)
+free(vbo::VertexBuffer) = @GL_call glDeleteBuffers(1, vbo.m_renderer_id)
 
 
-function bind!(vbo::VertexBuffer)
+function bind(vbo::VertexBuffer)
     @GL_call glBindBuffer(GL_ARRAY_BUFFER, vbo.m_renderer_id[])
     nothing
 end
 
-function unbind!(vbo::VertexBuffer)
+function unbind(vbo::VertexBuffer)
     @GL_call glBindBuffer(GL_ARRAY_BUFFER, vbo.m_renderer_id[])
     nothing
 end

@@ -14,19 +14,19 @@ function IndexBuffer(data, count::UInt32)
     @GL_call glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_renderer_id[])
     @GL_call glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4count, data, GL_STATIC_DRAW)
     ibo = IndexBuffer(m_renderer_id, count)
-    finalizer(free!, ibo)
+    finalizer(free, ibo)
     ibo
 end
 
-free!(ibo::IndexBuffer) = @GL_call glDeleteBuffers(1, ibo.m_renderer_id)
+free(ibo::IndexBuffer) = @GL_call glDeleteBuffers(1, ibo.m_renderer_id)
 
 
-function bind!(ibo::IndexBuffer)
+function bind(ibo::IndexBuffer)
     @GL_call glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo.m_renderer_id[])
     nothing
 end
 
-function unbind!(ibo::IndexBuffer)
+function unbind(ibo::IndexBuffer)
     @GL_call glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo.m_renderer_id[])
     nothing
 end

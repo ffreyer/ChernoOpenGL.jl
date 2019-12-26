@@ -14,16 +14,16 @@ function Shader(filepath::String)
     shaders = parse_shader(filepath)
     m_renderer_id = create_shader(shaders)
     shader = Shader(filepath, Ref{UInt32}(m_renderer_id), Dict{String, Int32}())
-    finalizer(free!, shader)
+    finalizer(free, shader)
     shader
 end
 
-free!(shader::Shader) = @GL_call ModernGL.glDeleteProgram(shader.m_renderer_id[])
-bind!(shader::Shader) = @GL_call ModernGL.glUseProgram(shader.m_renderer_id[])
-unbind!(shader::Shader) = @GL_call ModernGL.glUseProgram(0) # NOTE maybe C_NULL
+free(shader::Shader) = @GL_call ModernGL.glDeleteProgram(shader.m_renderer_id[])
+bind(shader::Shader) = @GL_call ModernGL.glUseProgram(shader.m_renderer_id[])
+unbind(shader::Shader) = @GL_call ModernGL.glUseProgram(0) # NOTE maybe C_NULL
 
 
-function uniform4f!(shader::Shader, name, x::Float32, y::Float32, z::Float32, w::Float32)
+function uniform4f(shader::Shader, name, x::Float32, y::Float32, z::Float32, w::Float32)
     @GL_call ModernGL.glUniform4f(uniform_location(shader, name), x, y, z, w)
 end
 
@@ -73,7 +73,7 @@ function compile_shader(gl_type, source::String)
     @GL_call ModernGL.glCompileShader(id)
 
     # Error handling
-    result = Ref{Int32}() #Int32[]
+    result = Ref{Int32}()
     @GL_call ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
     if result[] == GL_FALSE
         L = Ref{Int32}()

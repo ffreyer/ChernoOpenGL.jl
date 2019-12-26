@@ -1,32 +1,18 @@
-function gl_clear_error!()
-    while ModernGL.glGetError() != ModernGL.GL_NO_ERROR
-    end
+struct Renderer
+
+end
+
+# function Renderer()
+#
+# end
+
+clear(r::Renderer) = @GL_call glClear(GL_COLOR_BUFFER_BIT)
+
+function draw(r::Renderer, va::VertexArray, ibo::IndexBuffer, shader::Shader)
+    bind(shader)
+    bind(va)
+    bind(ibo)
+    @GL_call glDrawElements(GL_TRIANGLES, length(ibo), GL_UNSIGNED_INT, C_NULL)
+
     nothing
-end
-
-function gl_check_error()
-    error = ModernGL.glGetError()
-    error == ModernGL.GL_NO_ERROR && return ""
-    # @error "An OpenGL Error has occured!"
-    errors = typeof(error)[]
-    while error != ModernGL.GL_NO_ERROR
-        # println(error)
-        push!(errors, error)
-        error = ModernGL.glGetError()
-    end
-    # or Atom.JunoDebugger.add_breakpoint_args or whatever
-    "$(join(errors, ", "))"
-end
-
-# This messes up stacktraces :(
-macro GL_call(arg)
-    arg_string = string(arg)
-    quote
-        gl_clear_error!()
-        $(esc(arg))
-        errors = gl_check_error()
-        !isempty(errors) && throw(ErrorException(
-            "An OpenGL Error occured when executing $($arg_string). ($errors)"
-        ))
-    end
 end
