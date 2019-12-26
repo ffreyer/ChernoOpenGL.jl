@@ -11,7 +11,7 @@ function VertexArray()
 end
 
 free(va::VertexArray) = @GL_call glDeleteVertexArrays(1, va.m_renderer_id)
-bind(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(va.m_renderer_id[])
+Base.bind(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(va.m_renderer_id[])
 unbind(va::VertexArray) = @GL_call ModernGL.glBindVertexArray(0)
 
 function add_buffer(va::VertexArray, vbo::VertexBuffer, layout::VertexBufferLayout)

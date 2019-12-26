@@ -22,7 +22,7 @@ end
 free(vbo::VertexBuffer) = @GL_call glDeleteBuffers(1, vbo.m_renderer_id)
 
 
-function bind(vbo::VertexBuffer)
+function Base.bind(vbo::VertexBuffer)
     @GL_call glBindBuffer(GL_ARRAY_BUFFER, vbo.m_renderer_id[])
     nothing
 end

@@ -21,7 +21,7 @@ end
 free(ibo::IndexBuffer) = @GL_call glDeleteBuffers(1, ibo.m_renderer_id)
 
 
-function bind(ibo::IndexBuffer)
+function Base.bind(ibo::IndexBuffer)
     @GL_call glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo.m_renderer_id[])
     nothing
 end

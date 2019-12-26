@@ -19,7 +19,7 @@ function Shader(filepath::String)
 end
 
 free(shader::Shader) = @GL_call ModernGL.glDeleteProgram(shader.m_renderer_id[])
-bind(shader::Shader) = @GL_call ModernGL.glUseProgram(shader.m_renderer_id[])
+Base.bind(shader::Shader) = @GL_call ModernGL.glUseProgram(shader.m_renderer_id[])
 unbind(shader::Shader) = @GL_call ModernGL.glUseProgram(0) # NOTE maybe C_NULL
 
 
