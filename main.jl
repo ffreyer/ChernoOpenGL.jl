@@ -3,6 +3,7 @@
 
 
 using GLFW, ModernGL
+using FileIO
 
 include("GL_util.jl")
 include("VertexBuffer.jl")
@@ -11,7 +12,7 @@ include("VertexBufferLayout.jl")
 include("VertexArray.jl")
 include("Shader.jl")
 include("Renderer.jl")
-
+include("Texture.jl")
 
 
 
@@ -31,10 +32,10 @@ function main()
     # vertex = position, texture coordinate, normals, ...
     #              ^- these things are called attributes
     positions = Float32[
-        -0.5, -0.5,
-         0.5, -0.5,
-         0.5,  0.5,
-        -0.5,  0.5
+        -0.5, -0.5, 0.0, 0.0,
+         0.5, -0.5, 1.0, 0.0,
+         0.5,  0.5, 1.0, 1.0,
+        -0.5,  0.5, 0.0, 1.0
     ]
 
     # Hey, that's a GeometryTypes Face
@@ -44,12 +45,16 @@ function main()
         2, 3, 0
     ]
 
+    # 'case you got transparency
+    # @GL_call glEnable(GL_BLEND)
+    # @GL_call glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     va = VertexArray()
     vbo = VertexBuffer(positions)
 
     # add_buffer!(va, vbo)
     layout = VertexBufferLayout()
+    push!(layout, Float32, 2)
     push!(layout, Float32, 2)
     add_buffer(va, vbo, layout)
 
@@ -59,7 +64,10 @@ function main()
 
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
     bind(shader)
-    uniform4f(shader, "u_color", 0.8f0, 0.3f0, 0.8f0, 1.0f0)
+
+    texture = Texture((@__DIR__) * "/resources/textures/thumbs_up.png")
+    bind(texture)
+    uniform1i(shader, "u_Texture", Int32(0)) # must match slot from texture
 
     unbind(va)
     unbind(shader)
@@ -77,7 +85,6 @@ function main()
 
     	# Render here
         bind(shader)
-        uniform4f(shader, "u_color", r, 0.3f0, 0.8f0, 1f0)
 
         draw(renderer, va, ibo, shader)
 

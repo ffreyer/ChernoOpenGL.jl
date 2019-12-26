@@ -26,6 +26,9 @@ unbind(shader::Shader) = @GL_call ModernGL.glUseProgram(0) # NOTE maybe C_NULL
 function uniform4f(shader::Shader, name, x::Float32, y::Float32, z::Float32, w::Float32)
     @GL_call ModernGL.glUniform4f(uniform_location(shader, name), x, y, z, w)
 end
+function uniform1i(shader::Shader, name, x::Int32)
+    @GL_call ModernGL.glUniform1i(uniform_location(shader, name), x)
+end
 
 function uniform_location(shader::Shader, name)
     if haskey(shader.uniform_locations, name)
