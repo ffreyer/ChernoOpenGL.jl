@@ -134,6 +134,7 @@ function main()
 
     # Make the window's context current
     GLFW.MakeContextCurrent(window)
+    GLFW.SwapInterval(1) # Seems to be my default
 
     # vertex = position, texture coordinate, normals, ...
     #              ^- these things are called attributes
@@ -194,17 +195,32 @@ function main()
     shader = create_shader(shaders[:vertex], shaders[:fragment])
     @GL_call ModernGL.glUseProgram(shader)
 
+    # case sensitive
+    location = glGetUniformLocation(shader, "u_color")
+    @assert location != -1 "Uniform not found. Did you name it correctly? Is it used?"
+
+    r = 0f0
+    increment = 0.05f0
+
     # Loop until the user closes the window
     while !GLFW.WindowShouldClose(window)
         @GL_call ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
 
     	# Render here
+        @GL_call ModernGL.glUniform4f(location, r, 0.3f0, 0.8f0, 1f0)
+
         @GL_call ModernGL.glDrawElements(
             ModernGL.GL_TRIANGLES,
             length(indices),
-            ModernGL.GL_INT,
+            ModernGL.GL_UNSIGNED_INT,
             C_NULL # indexbuffer currently active
         )
+
+        if r > 1f0; increment = -0.05f0
+        elseif r < 0f0; increment = 0.05f0
+        end
+        r += increment
+
 
     	# Swap front and back buffers
     	GLFW.SwapBuffers(window)
