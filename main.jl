@@ -129,6 +129,10 @@ end
 
 
 function main()
+    GLFW.WindowHint(GLFW.CONTEXT_VERSION_MAJOR, 3)
+    GLFW.WindowHint(GLFW.CONTEXT_VERSION_MINOR, 3)
+    GLFW.WindowHint(GLFW.OPENGL_PROFILE, GLFW.OPENGL_CORE_PROFILE)
+
     # Create a window and its OpenGL context
     window = GLFW.CreateWindow(640, 480, "GLFW.jl")
 
@@ -152,6 +156,11 @@ function main()
         2, 3, 0
     ]
 
+    # Generate Vertex array object
+    vao = Ref{UInt32}()
+    @GL_call ModernGL.glGenVertexArrays(1, vao)
+    @GL_call ModernGL.glBindVertexArray(vao[])
+
     # Generate Vertex Buffer
     vbo = Ref{ModernGL.GLuint}()
     @GL_call ModernGL.glGenBuffers(1, vbo)
@@ -167,6 +176,7 @@ function main()
 
     # Tell opengl what its looking at
     @GL_call ModernGL.glEnableVertexAttribArray(0)
+    # v this links vao and vbo (via index!?)
     @GL_call ModernGL.glVertexAttribPointer(
         0,                      # index - what the shader accesses via indexing
         2,                      # vertex component size
@@ -199,6 +209,12 @@ function main()
     location = glGetUniformLocation(shader, "u_color")
     @assert location != -1 "Uniform not found. Did you name it correctly? Is it used?"
 
+    @GL_call ModernGL.glBindVertexArray(0)
+    @GL_call ModernGL.glUseProgram(0)
+    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, 0)
+    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, 0)
+
+
     r = 0f0
     increment = 0.05f0
 
@@ -207,7 +223,15 @@ function main()
         @GL_call ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
 
     	# Render here
+        @GL_call ModernGL.glUseProgram(shader)
         @GL_call ModernGL.glUniform4f(location, r, 0.3f0, 0.8f0, 1f0)
+        @GL_call ModernGL.glBindVertexArray(vao[])
+        # @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, vbo[])
+        # @GL_call ModernGL.glEnableVertexAttribArray(0)
+        # @GL_call ModernGL.glVertexAttribPointer(
+        #     0, 2, ModernGL.GL_FLOAT, ModernGL.GL_FALSE, 2sizeof(Float32), C_NULL                  # offset of vertex components
+        # )
+        @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
 
         @GL_call ModernGL.glDrawElements(
             ModernGL.GL_TRIANGLES,
