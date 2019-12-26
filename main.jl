@@ -5,6 +5,61 @@
 using GLFW, ModernGL
 
 
+function gl_clear_error!()
+    while ModernGL.glGetError() != ModernGL.GL_NO_ERROR
+    end
+    nothing
+end
+
+function gl_check_error()
+    error = ModernGL.glGetError()
+    error == ModernGL.GL_NO_ERROR && return ""
+    # @error "An OpenGL Error has occured!"
+    errors = typeof(error)[]
+    while error != ModernGL.GL_NO_ERROR
+        # println(error)
+        push!(errors, error)
+        error = ModernGL.glGetError()
+    end
+    # or Atom.JunoDebugger.add_breakpoint_args or whatever
+    "$(join(errors, ", "))"
+end
+
+# This messes up stacktraces :(
+macro GL_call(arg)
+    arg_string = string(arg)
+    quote
+        gl_clear_error!()
+        $(esc(arg))
+        errors = gl_check_error()
+        !isempty(errors) && throw(ErrorException(
+            "An OpenGL Error occured when executing $($arg_string). ($errors)"
+        ))
+    end
+end
+
+
+
+# NOTE: Needs to be called after a context is bound
+function version_to_string()
+    if GLFW.GetCurrentContext().handle == C_NULL
+        throw(ErrorException("Context must be bound!"))
+    end
+
+    buffer = UInt8[]
+    @GL_call ptr = ModernGL.glGetString(GL_VERSION)
+    for i in 1:100
+        value = unsafe_load(ptr, i)
+        if value == 0x00
+            break
+        else
+            push!(buffer, value)
+        end
+    end
+    join(Char.(buffer))
+end
+
+
 function parse_shader(filepath)
     shaders = Dict{Symbol, String}()
     open(filepath, "r") do f
@@ -27,22 +82,22 @@ end
 
 
 function compile_shader(gl_type, source::String)
-    id = ModernGL.glCreateShader(gl_type)
+    @GL_call id = ModernGL.glCreateShader(gl_type)
     c_str = Vector{UInt8}(source)
     shader_code_ptrs = Ptr{UInt8}[pointer(c_str)]
     len = Ref{GLint}(length(c_str))
-    ModernGL.glShaderSource(id, 1, shader_code_ptrs, len)
-    ModernGL.glCompileShader(id)
+    @GL_call ModernGL.glShaderSource(id, 1, shader_code_ptrs, len)
+    @GL_call ModernGL.glCompileShader(id)
 
     # Error handling
     result = Ref{Int32}() #Int32[]
-    ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
+    @GL_call ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
     if result[] == GL_FALSE
         L = Ref{Int32}()
-        ModernGL.glGetShaderiv(id, ModernGL.GL_INFO_LOG_LENGTH, L)
+        @GL_call ModernGL.glGetShaderiv(id, ModernGL.GL_INFO_LOG_LENGTH, L)
         msg = Vector{UInt8}(undef, L[])
-        ModernGL.glGetShaderInfoLog(id, L[], C_NULL, msg)
-        ModernGL.glDeleteShader(id)
+        @GL_call ModernGL.glGetShaderInfoLog(id, L[], C_NULL, msg)
+        @GL_call ModernGL.glDeleteShader(id)
 
         throw(ErrorException(
             "Failed to compile " *
@@ -56,18 +111,18 @@ end
 
 
 function create_shader(vertex_shader, fragment_shader)
-    program = ModernGL.glCreateProgram()
-    vs = compile_shader(ModernGL.GL_VERTEX_SHADER, vertex_shader)
-    fs = compile_shader(ModernGL.GL_FRAGMENT_SHADER, fragment_shader)
+    @GL_call program = ModernGL.glCreateProgram()
+    @GL_call vs = compile_shader(ModernGL.GL_VERTEX_SHADER, vertex_shader)
+    @GL_call fs = compile_shader(ModernGL.GL_FRAGMENT_SHADER, fragment_shader)
 
-    glAttachShader(program, vs)
-    glAttachShader(program, fs)
-    glLinkProgram(program)
-    glValidateProgram(program)
+    @GL_call ModernGL.glAttachShader(program, vs)
+    @GL_call ModernGL.glAttachShader(program, fs)
+    @GL_call ModernGL.glLinkProgram(program)
+    @GL_call ModernGL.glValidateProgram(program)
 
     # Clear temporary stuff
-    glDeleteShader(vs)
-    glDeleteShader(fs)
+    @GL_call ModernGL.glDeleteShader(vs)
+    @GL_call ModernGL.glDeleteShader(fs)
 
     return program
 end
@@ -98,11 +153,11 @@ function main()
 
     # Generate Vertex Buffer
     vbo = Ref{ModernGL.GLuint}()
-    ModernGL.glGenBuffers(1, vbo)
+    @GL_call ModernGL.glGenBuffers(1, vbo)
     # Select the buffer, mark as array buffer
-    ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, vbo[])
+    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, vbo[])
     # Add data
-    ModernGL.glBufferData(
+    @GL_call ModernGL.glBufferData(
         ModernGL.GL_ARRAY_BUFFER,
         sizeof(positions),
         positions,                   # Not interpreted as float, rather just a some pointer
@@ -110,8 +165,8 @@ function main()
     )
 
     # Tell opengl what its looking at
-    ModernGL.glEnableVertexAttribArray(0)
-    ModernGL.glVertexAttribPointer(
+    @GL_call ModernGL.glEnableVertexAttribArray(0)
+    @GL_call ModernGL.glVertexAttribPointer(
         0,                      # index - what the shader accesses via indexing
         2,                      # vertex component size
         ModernGL.GL_FLOAT,      # type
@@ -123,11 +178,11 @@ function main()
 
     # Generate Index Buffer
     ibo = Ref{ModernGL.GLuint}()
-    ModernGL.glGenBuffers(1, ibo)
+    @GL_call ModernGL.glGenBuffers(1, ibo)
     # Select the buffer, mark as array buffer
-    ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
+    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
     # Add data
-    ModernGL.glBufferData(
+    @GL_call ModernGL.glBufferData(
         ModernGL.GL_ELEMENT_ARRAY_BUFFER,
         sizeof(indices),
         indices,
@@ -137,17 +192,17 @@ function main()
 
     shaders = parse_shader((@__DIR__) * "/resources/shaders/basic.shader")
     shader = create_shader(shaders[:vertex], shaders[:fragment])
-    ModernGL.glUseProgram(shader)
+    @GL_call ModernGL.glUseProgram(shader)
 
     # Loop until the user closes the window
     while !GLFW.WindowShouldClose(window)
-        ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
+        @GL_call ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
 
     	# Render here
-        ModernGL.glDrawElements(
+        @GL_call ModernGL.glDrawElements(
             ModernGL.GL_TRIANGLES,
             length(indices),
-            ModernGL.GL_UNSIGNED_INT,
+            ModernGL.GL_INT,
             C_NULL # indexbuffer currently active
         )
 
@@ -159,7 +214,7 @@ function main()
     end
 
     # Cleanup shader
-    ModernGL.glDeleteProgram(shader)
+    @GL_call ModernGL.glDeleteProgram(shader)
 
     # GLFW.Terminate() # requires re-initialization when re-running
     GLFW.DestroyWindow(window)
