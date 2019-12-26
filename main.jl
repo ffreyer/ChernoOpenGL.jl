@@ -9,6 +9,7 @@ include("VertexBuffer.jl")
 include("IndexBuffer.jl")
 include("VertexBufferLayout.jl")
 include("VertexArray.jl")
+include("Shader.jl")
 
 
 # NOTE: Needs to be called after a context is bound
@@ -31,72 +32,6 @@ function version_to_string()
 end
 
 
-function parse_shader(filepath)
-    shaders = Dict{Symbol, String}()
-    open(filepath, "r") do f
-        write_to = :none
-        for line in eachline(f)
-            if startswith(line, "#shader")
-                write_to = Symbol(line[9:end])
-                push!(shaders, write_to => "")
-                continue
-            end
-            if (write_to == :none) && !isempty(line)
-                @warn "Ignored line\n\t>> $line"
-            else
-                shaders[write_to] = shaders[write_to] * "\n" * line
-            end
-        end
-    end
-    shaders
-end
-
-
-function compile_shader(gl_type, source::String)
-    @GL_call id = ModernGL.glCreateShader(gl_type)
-    c_str = Vector{UInt8}(source)
-    shader_code_ptrs = Ptr{UInt8}[pointer(c_str)]
-    len = Ref{GLint}(length(c_str))
-    @GL_call ModernGL.glShaderSource(id, 1, shader_code_ptrs, len)
-    @GL_call ModernGL.glCompileShader(id)
-
-    # Error handling
-    result = Ref{Int32}() #Int32[]
-    @GL_call ModernGL.glGetShaderiv(id, ModernGL.GL_COMPILE_STATUS, result)
-    if result[] == GL_FALSE
-        L = Ref{Int32}()
-        @GL_call ModernGL.glGetShaderiv(id, ModernGL.GL_INFO_LOG_LENGTH, L)
-        msg = Vector{UInt8}(undef, L[])
-        @GL_call ModernGL.glGetShaderInfoLog(id, L[], C_NULL, msg)
-        @GL_call ModernGL.glDeleteShader(id)
-
-        throw(ErrorException(
-            "Failed to compile " *
-            (gl_type == ModernGL.GL_VERTEX_SHADER ? "vertex" : "fragment") *
-            " shader!\n\n" * String(msg)
-        ))
-    end
-
-    return id
-end
-
-
-function create_shader(vertex_shader, fragment_shader)
-    @GL_call program = ModernGL.glCreateProgram()
-    @GL_call vs = compile_shader(ModernGL.GL_VERTEX_SHADER, vertex_shader)
-    @GL_call fs = compile_shader(ModernGL.GL_FRAGMENT_SHADER, fragment_shader)
-
-    @GL_call ModernGL.glAttachShader(program, vs)
-    @GL_call ModernGL.glAttachShader(program, fs)
-    @GL_call ModernGL.glLinkProgram(program)
-    @GL_call ModernGL.glValidateProgram(program)
-
-    # Clear temporary stuff
-    @GL_call ModernGL.glDeleteShader(vs)
-    @GL_call ModernGL.glDeleteShader(fs)
-
-    return program
-end
 
 
 function main()
@@ -140,18 +75,14 @@ function main()
     ibo = IndexBuffer(indices)
 
 
-    shaders = parse_shader((@__DIR__) * "/resources/shaders/basic.shader")
-    shader = create_shader(shaders[:vertex], shaders[:fragment])
-    @GL_call ModernGL.glUseProgram(shader)
+    shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
+    bind!(shader)
+    uniform4f!(shader, "u_color", 0.8f0, 0.3f0, 0.8f0, 1.0f0)
 
-    # case sensitive
-    location = glGetUniformLocation(shader, "u_color")
-    @assert location != -1 "Uniform not found. Did you name it correctly? Is it used?"
-
-    @GL_call ModernGL.glBindVertexArray(0)
-    @GL_call ModernGL.glUseProgram(0)
-    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, 0)
-    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, 0)
+    unbind!(va)
+    unbind!(shader)
+    unbind!(vbo)
+    unbind!(ibo)
 
 
     r = 0f0
@@ -162,8 +93,8 @@ function main()
         @GL_call ModernGL.glClear(ModernGL.GL_COLOR_BUFFER_BIT)
 
     	# Render here
-        @GL_call ModernGL.glUseProgram(shader)
-        @GL_call ModernGL.glUniform4f(location, r, 0.3f0, 0.8f0, 1f0)
+        bind!(shader)
+        uniform4f!(shader, "u_color", r, 0.3f0, 0.8f0, 1f0)
 
         bind!(va)
         bind!(ibo)
@@ -187,9 +118,6 @@ function main()
     	# Poll for and process events
     	GLFW.PollEvents()
     end
-
-    # Cleanup shader
-    @GL_call ModernGL.glDeleteProgram(shader)
 
     # GLFW.Terminate() # requires re-initialization when re-running
     GLFW.DestroyWindow(window)
