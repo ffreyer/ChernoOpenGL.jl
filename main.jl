@@ -7,6 +7,8 @@ using GLFW, ModernGL
 include("Renderer.jl")
 include("VertexBuffer.jl")
 include("IndexBuffer.jl")
+include("VertexBufferLayout.jl")
+include("VertexArray.jl")
 
 
 # NOTE: Needs to be called after a context is bound
@@ -125,25 +127,14 @@ function main()
         2, 3, 0
     ]
 
-    # Generate Vertex array object
-    vao = Ref{UInt32}()
-    @GL_call ModernGL.glGenVertexArrays(1, vao)
-    @GL_call ModernGL.glBindVertexArray(vao[])
 
+    va = VertexArray()
     vbo = VertexBuffer(positions)
 
-    # Tell opengl what its looking at
-    @GL_call ModernGL.glEnableVertexAttribArray(0)
-    # v this links vao and vbo (via index!?)
-    @GL_call ModernGL.glVertexAttribPointer(
-        0,                      # index - what the shader accesses via indexing
-        2,                      # vertex component size
-        ModernGL.GL_FLOAT,      # type
-        ModernGL.GL_FALSE,      # should normalize?
-        2sizeof(Float32),       # vertex size
-        C_NULL                  # offset of vertex components
-    )
-
+    # add_buffer!(va, vbo)
+    layout = VertexBufferLayout()
+    push!(layout, Float32, 2)
+    add_buffer!(va, vbo, layout)
 
     # Generate Index Buffer
     ibo = IndexBuffer(indices)
@@ -173,7 +164,8 @@ function main()
     	# Render here
         @GL_call ModernGL.glUseProgram(shader)
         @GL_call ModernGL.glUniform4f(location, r, 0.3f0, 0.8f0, 1f0)
-        @GL_call ModernGL.glBindVertexArray(vao[])
+
+        bind!(va)
         bind!(ibo)
 
         @GL_call ModernGL.glDrawElements(
