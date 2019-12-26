@@ -4,40 +4,9 @@
 
 using GLFW, ModernGL
 
-
-function gl_clear_error!()
-    while ModernGL.glGetError() != ModernGL.GL_NO_ERROR
-    end
-    nothing
-end
-
-function gl_check_error()
-    error = ModernGL.glGetError()
-    error == ModernGL.GL_NO_ERROR && return ""
-    # @error "An OpenGL Error has occured!"
-    errors = typeof(error)[]
-    while error != ModernGL.GL_NO_ERROR
-        # println(error)
-        push!(errors, error)
-        error = ModernGL.glGetError()
-    end
-    # or Atom.JunoDebugger.add_breakpoint_args or whatever
-    "$(join(errors, ", "))"
-end
-
-# This messes up stacktraces :(
-macro GL_call(arg)
-    arg_string = string(arg)
-    quote
-        gl_clear_error!()
-        $(esc(arg))
-        errors = gl_check_error()
-        !isempty(errors) && throw(ErrorException(
-            "An OpenGL Error occured when executing $($arg_string). ($errors)"
-        ))
-    end
-end
-
+include("Renderer.jl")
+include("VertexBuffer.jl")
+include("IndexBuffer.jl")
 
 
 # NOTE: Needs to be called after a context is bound
@@ -161,18 +130,7 @@ function main()
     @GL_call ModernGL.glGenVertexArrays(1, vao)
     @GL_call ModernGL.glBindVertexArray(vao[])
 
-    # Generate Vertex Buffer
-    vbo = Ref{ModernGL.GLuint}()
-    @GL_call ModernGL.glGenBuffers(1, vbo)
-    # Select the buffer, mark as array buffer
-    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, vbo[])
-    # Add data
-    @GL_call ModernGL.glBufferData(
-        ModernGL.GL_ARRAY_BUFFER,
-        sizeof(positions),
-        positions,                   # Not interpreted as float, rather just a some pointer
-        ModernGL.GL_STATIC_DRAW
-    )
+    vbo = VertexBuffer(positions)
 
     # Tell opengl what its looking at
     @GL_call ModernGL.glEnableVertexAttribArray(0)
@@ -188,17 +146,7 @@ function main()
 
 
     # Generate Index Buffer
-    ibo = Ref{ModernGL.GLuint}()
-    @GL_call ModernGL.glGenBuffers(1, ibo)
-    # Select the buffer, mark as array buffer
-    @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
-    # Add data
-    @GL_call ModernGL.glBufferData(
-        ModernGL.GL_ELEMENT_ARRAY_BUFFER,
-        sizeof(indices),
-        indices,
-        ModernGL.GL_STATIC_DRAW
-    )
+    ibo = IndexBuffer(indices)
 
 
     shaders = parse_shader((@__DIR__) * "/resources/shaders/basic.shader")
@@ -226,12 +174,7 @@ function main()
         @GL_call ModernGL.glUseProgram(shader)
         @GL_call ModernGL.glUniform4f(location, r, 0.3f0, 0.8f0, 1f0)
         @GL_call ModernGL.glBindVertexArray(vao[])
-        # @GL_call ModernGL.glBindBuffer(ModernGL.GL_ARRAY_BUFFER, vbo[])
-        # @GL_call ModernGL.glEnableVertexAttribArray(0)
-        # @GL_call ModernGL.glVertexAttribPointer(
-        #     0, 2, ModernGL.GL_FLOAT, ModernGL.GL_FALSE, 2sizeof(Float32), C_NULL                  # offset of vertex components
-        # )
-        @GL_call ModernGL.glBindBuffer(ModernGL.GL_ELEMENT_ARRAY_BUFFER, ibo[])
+        bind!(ibo)
 
         @GL_call ModernGL.glDrawElements(
             ModernGL.GL_TRIANGLES,
