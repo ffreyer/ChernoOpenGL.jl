@@ -36,10 +36,10 @@ function main()
     # vertex = position, texture coordinate, normals, ...
     #              ^- these things are called attributes
     positions = Float32[
-        100, 100, 0.0, 0.0,
-        200, 100, 1.0, 0.0,
-        200, 200, 1.0, 1.0,
-        100, 200, 0.0, 1.0
+        -50, -50, 0.0, 0.0,
+         50, -50, 1.0, 0.0,
+         50,  50, 1.0, 1.0,
+        -50,  50, 0.0, 1.0
     ]
 
     # Hey, that's a GeometryTypes Face
@@ -68,8 +68,8 @@ function main()
     # -2..2 = 4, -1.5..1.5 = 3 => 4x3 ratio
     # proj = orthographicprojection(-2f0, 2f0, -1.5f0, 1.5f0, -1f0, 1f0)
     proj = orthographicprojection(0f0, 960f0, 0f0, 540f0, -1f0, 1f0)
-    view = translationmatrix(Vec3f0(-100, 0, 0)) # translate camera right / world left
-    model = translationmatrix(Vec3f0(200, 200, 0))
+    view = translationmatrix(Vec3f0(0, 0, 0)) # translate camera right / world left
+    model = translationmatrix(Vec3f0(0, 0, 0))
     mvp = proj * view * model
 
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
@@ -88,22 +88,26 @@ function main()
 
     renderer = Renderer()
 
-    r = 0f0
-    increment = 0.05f0
-
     # Loop until the user closes the window
     while !GLFW.WindowShouldClose(window)
         clear(renderer)
 
     	# Render here
-        bind(shader)
-
-        draw(renderer, va, ibo, shader)
-
-        if r > 1f0; increment = -0.05f0
-        elseif r < 0f0; increment = 0.05f0
+        let
+            model = translationmatrix(Vec3f0(200, 200, 0))
+            mvp = proj * view * model
+            bind(shader)
+            uniformMat4f(shader, "u_MVP", mvp)
+            draw(renderer, va, ibo, shader)
         end
-        r += increment
+
+        let
+            model = translationmatrix(Vec3f0(400, 200, 0))
+            mvp = proj * view * model
+            bind(shader)
+            uniformMat4f(shader, "u_MVP", mvp)
+            draw(renderer, va, ibo, shader)
+        end
 
 
     	# Swap front and back buffers

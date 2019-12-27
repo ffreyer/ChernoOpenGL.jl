@@ -1,10 +1,4 @@
-struct Renderer
-
-end
-
-# function Renderer()
-#
-# end
+struct Renderer end
 
 clear(r::Renderer) = @GL_call glClear(GL_COLOR_BUFFER_BIT)
 
