@@ -10,6 +10,12 @@ using GeometryTypes, Quaternions, StaticArrays
 import GeometryTypes: update
 include("GLMath.jl")
 
+# We may not have ImGUI, but at least we have observables...
+using Observables
+# To access observables defined in random places. Obviously suboptimal
+obs = Dict{Symbol, Observable}()
+
+
 include("GL_util.jl")
 include("VertexBuffer.jl")
 include("IndexBuffer.jl")
@@ -20,6 +26,25 @@ include("Renderer.jl")
 include("Texture.jl")
 
 include("tests/Test.jl")
+
+function renderloop(window, renderer, test::Ref{AbstractTest})
+    while true
+        clear(renderer)
+
+        update(test[], 0f0)
+        render(test[])
+
+    	GLFW.SwapBuffers(window)
+    	GLFW.PollEvents()
+
+        if GLFW.WindowShouldClose(window)
+            GLFW.DestroyWindow(window)
+            break
+        end
+
+        yield()
+    end
+end
 
 
 function main()
@@ -41,20 +66,21 @@ function main()
 
     renderer = Renderer()
 
-    test = ClearColorTest()
+    test_picker = Observable(ClearColorTest())
+    test = Ref{AbstractTest}(ClearColorTest())
+    _ = on(test_picker) do t
+        try
+            test[] = t
+        catch e
+            @error "Failed to update test." exception=e
+        end
+        nothing
+    end
+    global obs
+    push!(obs, :test => test_picker)
 
     # Loop until the user closes the window
-    while !GLFW.WindowShouldClose(window)
-        clear(renderer)
-
-        update(test, 0f0)
-        render(test)
-
-    	GLFW.SwapBuffers(window)
-    	GLFW.PollEvents()
-    end
-
-    GLFW.DestroyWindow(window)
+    @async renderloop(window, renderer, test)
 end
 
 main()
