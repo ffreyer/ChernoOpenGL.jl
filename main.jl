@@ -5,6 +5,10 @@
 using GLFW, ModernGL
 using FileIO
 
+# Maths (+ StaticArrays, useful shortcuts)
+using GeometryTypes
+include("GLMath.jl")
+
 include("GL_util.jl")
 include("VertexBuffer.jl")
 include("IndexBuffer.jl")
@@ -61,9 +65,12 @@ function main()
     # Generate Index Buffer
     ibo = IndexBuffer(indices)
 
+    # -2..2 = 4, -1.5..1.5 = 3 => 4x3 ratio
+    proj = orthographicprojection(-2f0, 2f0, -1.5f0, 1.5f0, -1f0, 1f0)
 
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
     bind(shader)
+    uniformMat4f(shader, "u_MVP", proj)
 
     # texture = Texture((@__DIR__) * "/resources/textures/thumbs_up.png")
     texture = Texture((@__DIR__) * "/resources/textures/transparent_thumbs_up.png")

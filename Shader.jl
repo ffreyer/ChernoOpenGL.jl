@@ -29,6 +29,9 @@ end
 function uniform1i(shader::Shader, name, x::Int32)
     @GL_call ModernGL.glUniform1i(uniform_location(shader, name), x)
 end
+function uniformMat4f(shader::Shader, name, x::Mat4f0)
+    @GL_call ModernGL.glUniformMatrix4fv(uniform_location(shader, name), 1, false, x)
+end
 
 function uniform_location(shader::Shader, name)
     if haskey(shader.uniform_locations, name)
