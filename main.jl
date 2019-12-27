@@ -27,7 +27,7 @@ function main()
     GLFW.WindowHint(GLFW.OPENGL_PROFILE, GLFW.OPENGL_CORE_PROFILE)
 
     # Create a window and its OpenGL context
-    window = GLFW.CreateWindow(640, 480, "GLFW.jl")
+    window = GLFW.CreateWindow(960, 540, "GLFW.jl")
 
     # Make the window's context current
     GLFW.MakeContextCurrent(window)
@@ -36,10 +36,10 @@ function main()
     # vertex = position, texture coordinate, normals, ...
     #              ^- these things are called attributes
     positions = Float32[
-        -0.5, -0.5, 0.0, 0.0,
-         0.5, -0.5, 1.0, 0.0,
-         0.5,  0.5, 1.0, 1.0,
-        -0.5,  0.5, 0.0, 1.0
+        100, 100, 0.0, 0.0,
+        200, 100, 1.0, 0.0,
+        200, 200, 1.0, 1.0,
+        100, 200, 0.0, 1.0
     ]
 
     # Hey, that's a GeometryTypes Face
@@ -66,7 +66,10 @@ function main()
     ibo = IndexBuffer(indices)
 
     # -2..2 = 4, -1.5..1.5 = 3 => 4x3 ratio
-    proj = orthographicprojection(-2f0, 2f0, -1.5f0, 1.5f0, -1f0, 1f0)
+    # proj = orthographicprojection(-2f0, 2f0, -1.5f0, 1.5f0, -1f0, 1f0)
+    proj = orthographicprojection(0f0, 960f0, 0f0, 540f0, -1f0, 1f0)
+    @info proj * Vec4f0(100, 100, 0, 1)
+
 
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
     bind(shader)
