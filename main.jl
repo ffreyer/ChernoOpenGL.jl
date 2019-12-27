@@ -6,7 +6,7 @@ using GLFW, ModernGL
 using FileIO
 
 # Maths (+ StaticArrays, useful shortcuts)
-using GeometryTypes
+using GeometryTypes, Quaternions, StaticArrays
 include("GLMath.jl")
 
 include("GL_util.jl")
@@ -68,12 +68,13 @@ function main()
     # -2..2 = 4, -1.5..1.5 = 3 => 4x3 ratio
     # proj = orthographicprojection(-2f0, 2f0, -1.5f0, 1.5f0, -1f0, 1f0)
     proj = orthographicprojection(0f0, 960f0, 0f0, 540f0, -1f0, 1f0)
-    @info proj * Vec4f0(100, 100, 0, 1)
-
+    view = translationmatrix(Vec3f0(-100, 0, 0)) # translate camera right / world left
+    model = translationmatrix(Vec3f0(200, 200, 0))
+    mvp = proj * view * model
 
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
     bind(shader)
-    uniformMat4f(shader, "u_MVP", proj)
+    uniformMat4f(shader, "u_MVP", mvp)
 
     # texture = Texture((@__DIR__) * "/resources/textures/thumbs_up.png")
     texture = Texture((@__DIR__) * "/resources/textures/transparent_thumbs_up.png")
