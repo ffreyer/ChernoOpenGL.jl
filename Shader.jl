@@ -35,7 +35,7 @@ function uniform_location(shader::Shader, name)
         return shader.uniform_locations[name]
     else
         @GL_call location = glGetUniformLocation(shader.m_renderer_id[], name)
-        @assert location != -1 "Uniform not found. Did you name it correctly? Is it used?"
+        location == -1 && @warn "Uniform not found. Did you name it correctly? Is it used?"
         push!(shader.uniform_locations, name => location)
         return location
     end

@@ -46,8 +46,8 @@ function main()
     ]
 
     # 'case you got transparency
-    # @GL_call glEnable(GL_BLEND)
-    # @GL_call glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    @GL_call glEnable(GL_BLEND)
+    @GL_call glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     va = VertexArray()
     vbo = VertexBuffer(positions)
@@ -65,7 +65,8 @@ function main()
     shader = Shader((@__DIR__) * "/resources/shaders/basic.shader")
     bind(shader)
 
-    texture = Texture((@__DIR__) * "/resources/textures/thumbs_up.png")
+    # texture = Texture((@__DIR__) * "/resources/textures/thumbs_up.png")
+    texture = Texture((@__DIR__) * "/resources/textures/transparent_thumbs_up.png")
     bind(texture)
     uniform1i(shader, "u_Texture", Int32(0)) # must match slot from texture
 
