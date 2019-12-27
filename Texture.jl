@@ -58,9 +58,7 @@ function Texture(path::String)
     t
 end
 
-function free(t::Texture)
-    @GL_call glDeleteTextures(1, t.m_renderer_id[])
-end
+free(t::Texture) = @GL_call glDeleteTextures(1, t.m_renderer_id)
 
 Base.bind(t::Texture, slot::Integer) = bind(t, UInt32(slot))
 function Base.bind(t::Texture, slot::UInt32 = 0)
