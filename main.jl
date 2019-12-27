@@ -66,11 +66,11 @@ function main()
 
     renderer = Renderer()
 
-    test_picker = Observable(ClearColorTest())
-    test = Ref{AbstractTest}(ClearColorTest())
-    _ = on(test_picker) do t
+    test_picker = Observable(ClearColorTest)
+    test = Ref{AbstractTest}(Texture2DTest())
+    _ = on(test_picker) do testtype
         try
-            test[] = t
+            test[] = testtype()
         catch e
             @error "Failed to update test." exception=e
         end
